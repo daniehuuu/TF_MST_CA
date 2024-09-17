@@ -37,11 +37,15 @@ def kruskal_with_animation(G):
 # Example graph
 G = nx.Graph()
 # Add weighted edges
-G.add_edge('A', 'B', weight=4)
-G.add_edge('A', 'C', weight=1)
-G.add_edge('B', 'C', weight=2)
-G.add_edge('B', 'D', weight=5)
-G.add_edge('C', 'D', weight=3)
+G.add_edge('A', 'B', weight=5)
+G.add_edge('A', 'E', weight=2)
+G.add_edge('B', 'D', weight=3)
+G.add_edge('B', 'C', weight=1)
+G.add_edge('C', 'D', weight=1)
+G.add_edge('C', 'F', weight=3)
+G.add_edge('D', 'F', weight=2)
+G.add_edge('D', 'E', weight=3)
+G.add_edge('E', 'F', weight=2)
 
 # Variables to store positions and edges in the MST
 pos = nx.spring_layout(G)  # Positioning the graph nodes
