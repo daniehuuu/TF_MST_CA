@@ -2,8 +2,9 @@
 
 ## To-do
 
- - [ ] GUI interface with tkinter
- - [ ] And a .csv with the connection of the MST 
+ - [ ] Connection status of KruskalAnimation should be below the graph.
+ - [ ] Solve the bug of opening two figures in show MST.
+ - [ ] In show data, display a table of nodes and their connections, its weight, the average and total.
 
  ## CSV view problem
 

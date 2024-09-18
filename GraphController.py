@@ -1,6 +1,5 @@
 import networkx as nx
 import matplotlib.pyplot as plt
-import tkinter as tk
 from tkinter import messagebox
 from file import read_graph_from_csv, export_graph_to_csv
 from KruskalAnimation import KruskalAnimation
@@ -8,7 +7,7 @@ from KruskalAnimation import KruskalAnimation
 class GraphController:
     def __init__(self, fileIn, fileOut):
         self.G = read_graph_from_csv(fileIn)
-        self.pos = nx.spring_layout(self.G, seed=42, k=2.00)  # Adjust k to reduce overlap
+        self.pos = None
         self.mst_edges = None  # Initialize mst_edges as None
 
     def show_data(self):
@@ -16,8 +15,15 @@ class GraphController:
         num_edges = self.G.number_of_edges()
         messagebox.showinfo("Graph Data", f"Number of nodes: {num_nodes}\nNumber of edges: {num_edges}")
 
+    def getPos(self):
+        if self.pos is None:
+            messagebox.showinfo("Positioning", "Calculating graph layout. Please wait.")
+            self.pos = nx.spring_layout(self.G, seed=42, k=2.00)
+        return self.pos
+    
     def show_visualization(self):
-        KruskalAnimation(self.G, self.pos).show()
+        pos = self.getPos()
+        KruskalAnimation(self.G, pos).show()
 
     def show_mst(self):
         if self.mst_edges is None:
@@ -38,10 +44,14 @@ class GraphController:
         return mst_edges
 
     def draw_mst(self, mst_edges):
+        if (mst_edges is None) or (len(mst_edges) == self.G.number_of_nodes() - 1):
+            mst_edges = self.kruskal()
+        
         plt.figure(figsize=(10, 8))
-        nx.draw_networkx_nodes(self.G, self.pos, node_size=50)
-        nx.draw_networkx_edges(self.G, self.pos, edgelist=self.G.edges, edge_color='lightgray')
-        nx.draw_networkx_edges(self.G, self.pos, edgelist=[(u, v) for u, v, w in mst_edges], edge_color='blue', width=2)
+        pos = self.getPos()
+        nx.draw_networkx_nodes(self.G, pos, node_size=50)
+        nx.draw_networkx_edges(self.G, pos, edgelist=self.G.edges, edge_color='lightgray')
+        nx.draw_networkx_edges(self.G, pos, edgelist=[(u, v) for u, v, w in mst_edges], edge_color='blue', width=2)
         plt.title("Minimum Spanning Tree (MST)")
         plt.show()
 

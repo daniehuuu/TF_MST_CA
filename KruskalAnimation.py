@@ -53,11 +53,13 @@ class KruskalAnimation:
         # Display the total weight and connection status
         if num > 0:
             u, v = self.mst_edges[num - 1]
-            connection_status = f"Connecting nodes {u} and {v}"
+            edge_weight = self.G[u][v]['weight']
+            connection_status = "Connecting nodes {} and {} with weight {}".format(u,v,edge_weight)
         else:
             connection_status = "Starting Kruskal's Algorithm"
         
         plt.title(f"Kruskal's Algorithm: Step {num} | Total MST Weight: {current_total_weight} | {connection_status}")
+        
 
     def show(self):
         plt.show()
