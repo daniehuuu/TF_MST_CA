@@ -1,9 +1,6 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-from file import read_graph_from_csv, export_graph_to_csv
-import tkinter as tk
-from tkinter import messagebox
 
 class KruskalAnimation:
     def __init__(self, G, pos):
