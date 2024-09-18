@@ -21,8 +21,14 @@ def update(num):
     # Calculate total weight of the MST up to this step
     current_total_weight = sum([G[u][v]['weight'] for u, v in mst_edges[:num]])
 
-    # Display the total weight
-    plt.title(f"Kruskal's Algorithm: Step {num} | Total MST Weight: {current_total_weight}")
+    # Display the total weight and connection status
+    if num > 0:
+        u, v = mst_edges[num-1]
+        connection_status = f"Connecting nodes {u} and {v}"
+    else:
+        connection_status = "Starting Kruskal's Algorithm"
+
+    plt.title(f"Kruskal's Algorithm: Step {num} | Total MST Weight: {current_total_weight} | {connection_status}")
 
 # Kruskal's Algorithm with animation
 def kruskal_with_animation(G):
