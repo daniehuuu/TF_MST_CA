@@ -27,6 +27,19 @@ def read_graph_from_csv(file_path):
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
 
+def export_graph_to_csv(edges, file_path):
+    try:
+        # Create a DataFrame from the edges
+        df = pd.DataFrame(edges, columns=['Node1', 'Node2', 'Weight'])
+        
+        # Write the DataFrame to a CSV file
+        df.to_csv(file_path, index=False)
+        print(f"Graph successfully exported to '{file_path}'")
+    
+    except PermissionError:
+        print(f"Error: The file '{file_path}' is already open or you don't have permission to write to it.")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
 # Example usage
 """
 file_path = 'connected_graph_1500_nodes.csv'

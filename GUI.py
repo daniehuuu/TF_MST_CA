@@ -1,6 +1,9 @@
 import tkinter as tk
 from tkinter import ttk
 import subprocess
+from GraphController import GraphController
+import subprocess
+
 excel_path = r"C:\Program Files\Microsoft Office\root\Office16\EXCEL.EXE"
 
 app = tk.Tk()
@@ -42,21 +45,23 @@ for i, author in enumerate(authors, start=2):
 
 ttk.Label(frame, text="", style="Custom.TLabel").grid(row=len(authors) + 2, column=0, pady=10)
 
+graph_controller = GraphController(fileIn='dataset.csv', fileOut='mst.csv')
+
 def open_program1():
-    subprocess.Popen(["python", "programa1.py"])
+    graph_controller.show_data()
 
 def open_program2():
-    subprocess.Popen(["python", "main.py"])
+    graph_controller.show_visualization()
 
 def open_dataset():
     subprocess.Popen([excel_path, "dataset.csv"])
 
 def open_mst():
-    subprocess.Popen(["python", "mst.py"])  
+    graph_controller.show_mst()
 
 def open_mst_csv():
-    subprocess.Popen([excel_path, "mst.csv"])  
-
+    graph_controller.export_mst_to_csv('mst.csv')
+    subprocess.Popen([excel_path, "mst.csv"])
 
 button1 = tk.Button(frame, text="Mostrar datos", command=open_program1, bg=button_bg_color, fg=button_fg_color, font=("Helvetica", 12), padx=15, pady=5)
 button1.grid(row=len(authors) + 3, column=0, pady=5, padx=10)
@@ -72,6 +77,3 @@ button4.grid(row=len(authors) + 5, column=0, pady=5, padx=10)
 
 button5 = tk.Button(frame, text="Mostrar MST CSV", command=open_mst_csv, bg=button_bg_color, fg=button_fg_color, font=("Helvetica", 12), padx=15, pady=5)
 button5.grid(row=len(authors) + 5, column=1, pady=5, padx=10)
-
-
-app.mainloop()
