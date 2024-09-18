@@ -58,8 +58,8 @@ class KruskalAnimation:
         else:
             connection_status = "Starting Kruskal's Algorithm"
         
-        plt.title(f"Kruskal's Algorithm: Step {num} | Total MST Weight: {current_total_weight} | {connection_status}")
-        
+        plt.title(f"Kruskal's Algorithm: Step {num} | Total MST Weight: {current_total_weight}")
+        plt.text(0.5, -0.07, connection_status, ha='center', va='center', transform=plt.gca().transAxes)
 
     def show(self):
         plt.show()
