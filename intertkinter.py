@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 import subprocess
+excel_path = r"C:\Program Files\Microsoft Office\root\Office16\EXCEL.EXE"
 
 app = tk.Tk()
 app.title("Planificación de Redes de Fibra Óptica")
@@ -48,15 +49,29 @@ def open_program2():
     subprocess.Popen(["python", "main.py"])
 
 def open_dataset():
-    subprocess.Popen(["notepad.exe", "dataset.csv"])
+    subprocess.Popen([excel_path, "dataset.csv"])
+
+def open_mst():
+    subprocess.Popen(["python", "mst.py"])  
+
+def open_mst_csv():
+    subprocess.Popen([excel_path, "mst.csv"])  
+
 
 button1 = tk.Button(frame, text="Mostrar datos", command=open_program1, bg=button_bg_color, fg=button_fg_color, font=("Helvetica", 12), padx=15, pady=5)
 button1.grid(row=len(authors) + 3, column=0, pady=5, padx=10)
 
-button2 = tk.Button(frame, text="Mostrar grafo", command=open_program2, bg=button_bg_color, fg=button_fg_color, font=("Helvetica", 12), padx=15, pady=5)
+button2 = tk.Button(frame, text="Abrir dataset.csv", command=open_dataset, bg=button_bg_color, fg=button_fg_color, font=("Helvetica", 12), padx=15, pady=5)
 button2.grid(row=len(authors) + 3, column=1, pady=5, padx=10)
 
-button3 = tk.Button(frame, text="Abrir dataset.csv", command=open_dataset, bg=button_bg_color, fg=button_fg_color, font=("Helvetica", 12), padx=15, pady=5)
+button3 = tk.Button(frame, text="Mostrar visualización", command=open_program2, bg=button_bg_color, fg=button_fg_color, font=("Helvetica", 12), padx=15, pady=5)
 button3.grid(row=len(authors) + 4, column=0, columnspan=2, pady=5, padx=10)
+
+button4 = tk.Button(frame, text="Mostrar MST", command=open_mst, bg=button_bg_color, fg=button_fg_color, font=("Helvetica", 12), padx=15, pady=5)
+button4.grid(row=len(authors) + 5, column=0, pady=5, padx=10)
+
+button5 = tk.Button(frame, text="Mostrar MST CSV", command=open_mst_csv, bg=button_bg_color, fg=button_fg_color, font=("Helvetica", 12), padx=15, pady=5)
+button5.grid(row=len(authors) + 5, column=1, pady=5, padx=10)
+
 
 app.mainloop()
