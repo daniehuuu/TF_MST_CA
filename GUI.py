@@ -45,7 +45,7 @@ for i, author in enumerate(authors, start=2):
 
 ttk.Label(frame, text="", style="Custom.TLabel").grid(row=len(authors) + 2, column=0, pady=10)
 
-graph_controller = GraphController(fileIn='dataset.csv', fileOut='mst.csv')
+graph_controller = GraphController(fileIn='dataset.csv')
 
 def open_program1():
     graph_controller.show_data()

@@ -5,14 +5,40 @@ from file import read_graph_from_csv, export_graph_to_csv
 from KruskalAnimation import KruskalAnimation
 
 class GraphController:
-    def __init__(self, fileIn, fileOut):
+    def __init__(self, fileIn):
         self.G = read_graph_from_csv(fileIn)
         self.pos = None
         self.mst_edges = None  # Initialize mst_edges as None
-        self.has_drawn = False
+        self.mst_total_weight = None
 
+    def getPos(self):
+        if self.pos is None:
+            messagebox.showinfo("Positioning", "Calculating graph layout. Please wait 10 to 20 seconds.")
+            self.pos = nx.spring_layout(self.G, seed=42, k=2.00)
+        return self.pos
+    
+    def getMST(self):
+        if self.mst_edges is None:
+            self.mst_edges = self.kruskal()
+        return self.mst_edges
+    
+    def getTotalWeightMST(self):
+        return sum([w for u, v, w in self.getMST()])
+    
+    def kruskal(self):
+        edges = sorted(self.G.edges(data=True), key=lambda x: x[2]['weight'])
+        uf = nx.utils.UnionFind()
+        mst_edges = []
+
+        for edge in edges:
+            u, v, data = edge
+            if uf[u] != uf[v]:  # Check if they are in different components
+                uf.union(u, v)  # Union the components
+                mst_edges.append((u, v, data['weight']))  # Add the edge to the MST with weight
+
+        return mst_edges
+    
     def show_data(self):
-        
         root = Tk()
         root.title("Graph Data")
         style = ttk.Style(root)
@@ -47,49 +73,25 @@ class GraphController:
 
         tree.pack()
         root.mainloop()
-
-    def getPos(self):
-        if self.pos is None:
-            messagebox.showinfo("Positioning", "Calculating graph layout. Please wait.")
-            self.pos = nx.spring_layout(self.G, seed=42, k=2.00)
-        return self.pos
     
     def show_visualization(self):
         pos = self.getPos()
-        self.has_drawn = True
-        KruskalAnimation(self.G, pos).show()
+        KruskalAnimation(self.G, pos, self.getMST()).show()
 
     def show_mst(self):
-        if self.mst_edges is None:
-            self.mst_edges = self.kruskal()
-        self.draw_mst(self.mst_edges)
-
-    def kruskal(self):
-        edges = sorted(self.G.edges(data=True), key=lambda x: x[2]['weight'])
-        uf = nx.utils.UnionFind()
-        mst_edges = []
-
-        for edge in edges:
-            u, v, data = edge
-            if uf[u] != uf[v]:  # Check if they are in different components
-                uf.union(u, v)  # Union the components
-                mst_edges.append((u, v, data['weight']))  # Add the edge to the MST with weight
-
-        return mst_edges
+        self.draw_mst(self.getMST())
 
     def draw_mst(self, mst_edges):
-        if not self.has_drawn:
-            
-            plt.figure(figsize=(10, 8))
-            pos = self.getPos()
-            nx.draw_networkx_nodes(self.G, pos, node_size=50)
-            nx.draw_networkx_edges(self.G, pos, edgelist=self.G.edges, edge_color='lightgray')
-            nx.draw_networkx_edges(self.G, pos, edgelist=[(u, v) for u, v, w in mst_edges], edge_color='blue', width=2)
-            
-        plt.title("Minimum Spanning Tree (MST)")
-        plt.show() 
+        #if (mst_edges is None) or (len(mst_edges) != self.G.number_of_nodes() - 1):
+        #    mst_edges = self.kruskal()
+        plt.close('all')
+        plt.figure(figsize=(10, 8))
+        pos = self.getPos()
+        nx.draw_networkx_nodes(self.G, pos, node_size=50)
+        nx.draw_networkx_edges(self.G, pos, edgelist=self.G.edges, edge_color='lightgray')
+        nx.draw_networkx_edges(self.G, pos, edgelist=[(u, v) for u, v, w in mst_edges], edge_color='blue', width=2)
+        plt.title("Minimum Spanning Tree (MST)" + f" | Total Weight: {self.getTotalWeightMST()}")
+        plt.show()
 
     def export_mst_to_csv(self, fileOut):
-        if self.mst_edges is None:
-            self.mst_edges = self.kruskal()
-        export_graph_to_csv(edges=self.mst_edges, file_path=fileOut)
+        export_graph_to_csv(edges=self.getMST(), file_path=fileOut)
