@@ -1,6 +1,6 @@
 import networkx as nx
 import matplotlib.pyplot as plt
-from tkinter import messagebox
+from tkinter import messagebox, Tk, Label, Frame, ttk
 from file import read_graph_from_csv, export_graph_to_csv
 from KruskalAnimation import KruskalAnimation
 
@@ -11,9 +11,41 @@ class GraphController:
         self.mst_edges = None  # Initialize mst_edges as None
 
     def show_data(self):
+        
+        root = Tk()
+        root.title("Graph Data")
+        style = ttk.Style(root)
+        style.theme_use("clam")  
+        style.configure("Treeview.Heading", font=("Helvetica", 10, "bold"))
+        style.configure("Treeview", rowheight=25, font=("Helvetica", 10))
+        
         num_nodes = self.G.number_of_nodes()
         num_edges = self.G.number_of_edges()
-        messagebox.showinfo("Graph Data", f"Number of nodes: {num_nodes}\nNumber of edges: {num_edges}")
+        
+        Label(root, text=f"Number of nodes: {num_nodes}", font=("Helvetica", 12)).pack(pady=5)
+        Label(root, text=f"Number of edges: {num_edges}", font=("Helvetica", 12)).pack(pady=5)
+
+        frame = Frame(root)
+        frame.pack(pady=10)
+
+        tree = ttk.Treeview(frame, columns=("Node", "Connections", "Total Weight", "Average Weight"), show="headings", height=10)
+        tree.heading("Node", text="Node")
+        tree.heading("Connections", text="Connections")
+        tree.heading("Total Weight", text="Total Weight")
+        tree.heading("Average Weight", text="Average Weight")
+        tree.column("Node", anchor="center", width=80)
+        tree.column("Connections", anchor="center", width=120)
+        tree.column("Total Weight", anchor="center", width=120)
+        tree.column("Average Weight", anchor="center", width=120)
+
+        for node in sorted(self.G.nodes): 
+            connections = self.G.degree(node) 
+            total_weight = sum([self.G[node][neighbor]['weight'] for neighbor in self.G.neighbors(node)])  
+            avg_weight = round(total_weight / connections, 1) if connections > 0 else 0  
+            tree.insert("", "end", values=(node, connections, total_weight, avg_weight))
+
+        tree.pack()
+        root.mainloop()
 
     def getPos(self):
         if self.pos is None:
