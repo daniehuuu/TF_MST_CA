@@ -26,6 +26,7 @@ class GraphController:
         return sum([w for u, v, w in self.getMST()])
     
     def kruskal(self):
+        #mst_edges = list(nx.minimum_spanning_edges(self.G, algorithm="kruskal", data=True))
         edges = sorted(self.G.edges(data=True), key=lambda x: x[2]['weight'])
         uf = nx.utils.UnionFind()
         mst_edges = []
@@ -35,7 +36,6 @@ class GraphController:
             if uf[u] != uf[v]:  # Check if they are in different components
                 uf.union(u, v)  # Union the components
                 mst_edges.append((u, v, data['weight']))  # Add the edge to the MST with weight
-
         return mst_edges
     
     def show_data(self):
