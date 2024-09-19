@@ -9,6 +9,7 @@ class GraphController:
         self.G = read_graph_from_csv(fileIn)
         self.pos = None
         self.mst_edges = None  # Initialize mst_edges as None
+        self.has_drawn = False
 
     def show_data(self):
         
@@ -55,6 +56,7 @@ class GraphController:
     
     def show_visualization(self):
         pos = self.getPos()
+        self.has_drawn = True
         KruskalAnimation(self.G, pos).show()
 
     def show_mst(self):
@@ -76,16 +78,16 @@ class GraphController:
         return mst_edges
 
     def draw_mst(self, mst_edges):
-        if (mst_edges is None) or (len(mst_edges) == self.G.number_of_nodes() - 1):
-            mst_edges = self.kruskal()
-        
-        plt.figure(figsize=(10, 8))
-        pos = self.getPos()
-        nx.draw_networkx_nodes(self.G, pos, node_size=50)
-        nx.draw_networkx_edges(self.G, pos, edgelist=self.G.edges, edge_color='lightgray')
-        nx.draw_networkx_edges(self.G, pos, edgelist=[(u, v) for u, v, w in mst_edges], edge_color='blue', width=2)
+        if not self.has_drawn:
+            
+            plt.figure(figsize=(10, 8))
+            pos = self.getPos()
+            nx.draw_networkx_nodes(self.G, pos, node_size=50)
+            nx.draw_networkx_edges(self.G, pos, edgelist=self.G.edges, edge_color='lightgray')
+            nx.draw_networkx_edges(self.G, pos, edgelist=[(u, v) for u, v, w in mst_edges], edge_color='blue', width=2)
+            
         plt.title("Minimum Spanning Tree (MST)")
-        plt.show()
+        plt.show() 
 
     def export_mst_to_csv(self, fileOut):
         if self.mst_edges is None:
