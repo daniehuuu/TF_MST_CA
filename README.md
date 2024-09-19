@@ -2,9 +2,7 @@
 
 ## To-do
 
- - [ ] Connection status of KruskalAnimation should be below the graph.
- - [ ] Solve the bug of opening two figures in show MST.
- - [ ] In show data, display a table of nodes and their connections, its weight, the average and total.
+ - [ ] Fix the "animation not rendered" problem in `KruskalAnimation` file and the opening of multiple figures in the call of `draw_mst()` function of `GraphController.py` file when the user previously find the first bug.
 
  ## CSV view problem
 

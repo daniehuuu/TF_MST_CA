@@ -82,8 +82,6 @@ class GraphController:
         self.draw_mst(self.getMST())
 
     def draw_mst(self, mst_edges):
-        #if (mst_edges is None) or (len(mst_edges) != self.G.number_of_nodes() - 1):
-        #    mst_edges = self.kruskal()
         plt.close('all')
         plt.figure(figsize=(10, 8))
         pos = self.getPos()
