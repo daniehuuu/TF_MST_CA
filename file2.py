@@ -4,6 +4,7 @@ import pandas as pd
 import networkx as nx
 from scipy.spatial import distance_matrix
 import json
+import heapq
 
 # Rutas a los archivos CSV y clave de API de Google Maps
 graph_file_path = 'CAN.csv'
@@ -376,3 +377,323 @@ def plot_original_graph(graph, api_key):
 
 # Example usage
 # plot_original_graph(original_graph, api_key) #This func don't work
+
+class MaxComponent:
+    def __init__(self, graph):
+        self.graph = graph
+        self.max_component = self.find_max_component()
+
+    def find_max_component(self):
+        visited = set()
+        max_component = set()
+
+        def dfs(node, component):
+            stack = [node]
+            while stack:
+                current = stack.pop()
+                if current not in visited:
+                    visited.add(current)
+                    component.add(current)
+                    stack.extend(neighbor for neighbor in self.graph.neighbors(current) if neighbor not in visited)
+
+        for node in self.graph.nodes():
+            if node not in visited:
+                component = set()
+                dfs(node, component)
+                if len(component) > len(max_component):
+                    max_component = component
+
+        return self.graph.subgraph(max_component)
+
+    def draw_max_component(self, api_key):
+        with open("max_component_map.html", "w", encoding="utf-8") as f:
+            f.write("""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    html, body, #map {
+                        height: 100%;
+                        margin: 0;
+                        padding: 0;
+                    }
+                    #info {
+                        position: absolute;
+                        top: 120px;
+                        left: 10px;
+                        background-color: white;
+                        padding: 10px;
+                        border: 1px solid black;
+                        border-radius: 5px;
+                        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                        z-index: 1000;
+                        font-family: Arial, sans-serif;
+                    }
+                    #info h2 {
+                        margin: 0 0 5px 0;
+                        font-size: 16px;
+                    }
+                    #info p {
+                        margin: 0;
+                        font-size: 14px;
+                    }
+                </style>
+                <script src="https://maps.googleapis.com/maps/api/js?key=""" + api_key + """&callback=initMap" async defer></script>
+                <script>
+                    function initMap() {
+                        var map = new google.maps.Map(document.getElementById('map'), {
+                            zoom: 10,
+                            center: {lat: """ + str(self.max_component.nodes[0]['pos'][1]) + """, lng: """ + str(self.max_component.nodes[0]['pos'][0]) + """}
+                        });
+
+                        var infoWindow = document.getElementById('info');
+
+                        var markers = [];
+                        var edges = """ + json.dumps([{'start': self.max_component.nodes[u]['pos'], 'end': self.max_component.nodes[v]['pos']} for u, v in self.max_component.edges()]) + """;
+
+                        edges.forEach(function(edge) {
+                            var start = new google.maps.LatLng(edge.start[1], edge.start[0]);
+                            var end = new google.maps.LatLng(edge.end[1], edge.end[0]);
+
+                            var line = new google.maps.Polyline({
+                                path: [start, end],
+                                geodesic: true,
+                                strokeColor: '#FF0000',
+                                strokeOpacity: 1.0,
+                                strokeWeight: 2,
+                                map: map
+                            });
+
+                            var markerStart = new google.maps.Marker({
+                                position: start,
+                                map: map,
+                                icon: {
+                                    url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png",
+                                    scaledSize: new google.maps.Size(20, 20)
+                                }
+                            });
+
+                            var markerEnd = new google.maps.Marker({
+                                position: end,
+                                map: map,
+                                icon: {
+                                    url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png",
+                                    scaledSize: new google.maps.Size(20, 20)
+                                }
+                            });
+
+                            markerStart.addListener('click', function() {
+                                infoWindow.innerHTML = '<h2>District: ' + edge.start[2] + '</h2>' +
+                                                       '<p>Latitude: ' + edge.start[1] + '</p>' +
+                                                       '<p>Longitude: ' + edge.start[0] + '</p>';
+                            });
+
+                            markerEnd.addListener('click', function() {
+                                infoWindow.innerHTML = '<h2>District: ' + edge.end[2] + '</h2>' +
+                                                       '<p>Latitude: ' + edge.end[1] + '</p>' +
+                                                       '<p>Longitude: ' + edge.end[0] + '</p>';
+                            });
+
+                            markers.push(markerStart);
+                            markers.push(markerEnd);
+                        });
+                    }
+                </script>
+            </head>
+            <body>
+                <div id="map"></div>
+                <div id="info">Click on a marker to see the district information here.</div>
+            </body>
+            </html>
+            """)
+
+    def number_of_nodes(self):
+        return self.max_component.number_of_nodes()
+
+    def number_of_edges(self):
+        return self.max_component.number_of_edges()
+
+# Example usage
+max_component1 = MaxComponent(original_graph)
+print(f"Number of nodes in the max component: {max_component1.number_of_nodes()}")
+print(f"Number of edges in the max component: {max_component1.number_of_edges()}")
+max_component = max_component1.max_component
+
+class UnionFind:
+    def __init__(self, size):
+        self.parent = list(range(size))
+        self.rank = [0] * size
+
+    def find(self, u):
+        if self.parent[u] != u:
+            self.parent[u] = self.find(self.parent[u])
+        return self.parent[u]
+
+    def union(self, u, v):
+        root_u = self.find(u)
+        root_v = self.find(v)
+        if root_u != root_v:
+            if self.rank[root_u] > self.rank[root_v]:
+                self.parent[root_v] = root_u
+            elif self.rank[root_u] < self.rank[root_v]:
+                self.parent[root_u] = root_v
+            else:
+                self.parent[root_v] = root_u
+                self.rank[root_u] += 1
+
+
+class MST:
+    def __init__(self, graph, api_key):
+        self.graph = graph
+        self.api_key = api_key
+        self.mst = []
+        self.total_cost = 0
+
+    def prim_mst_distance(self):
+        self.mst = []
+        self.total_cost = 0
+        start_node = next(iter(self.graph.nodes))
+        visited = set([start_node])
+        edges = [(data['distance'], start_node, neighbor) for neighbor, data in self.graph[start_node].items()]
+        heapq.heapify(edges)
+        
+        while edges:
+            distance, u, v = heapq.heappop(edges)
+            if v not in visited:
+                visited.add(v)
+                self.mst.append((u, v, distance))
+                self.total_cost += distance
+                for neighbor, data in self.graph[v].items():
+                    if neighbor not in visited:
+                        heapq.heappush(edges, (data['distance'], v, neighbor))
+        
+        print(f"Prim MST by distance - Nodes: {len(visited)}, Edges: {len(self.mst)}, Total Distance: {self.total_cost}")
+        self.draw_mst_html("prim_mst_distance.html", "distance")
+
+    def kruskal_mst_cost(self):
+        self.mst = []
+        self.total_cost = 0
+        edges = [(data['cost'], u, v) for u, v, data in self.graph.edges(data=True)]
+        edges.sort()
+        
+        print(len(self.graph.nodes))
+        uf = UnionFind(len(self.graph.nodes))
+        node_index = {node: idx for idx, node in enumerate(self.graph.nodes)}
+        print(f"Kruskal MST by cost - Nodes: {len(set(node_index.values()))}, Edges: {len(self.mst)}, Total Cost: {self.total_cost}")
+        
+        for cost, u, v in edges:
+            if uf.find(node_index[u]) != uf.find(node_index[v]):
+                uf.union(node_index[u], node_index[v])
+                self.mst.append((u, v, cost))
+                self.total_cost += cost
+
+        print(f"Kruskal MST by cost - Nodes: {len(set(node_index.values()))}, Edges: {len(self.mst)}, Total Cost: {self.total_cost}")
+        self.draw_mst_html("kruskal_mst_cost.html", "cost")
+
+    def draw_mst_html(self, file_name, attribute):
+        with open(file_name, "w", encoding="utf-8") as f:
+            f.write("""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    html, body, #map {
+                        height: 100%;
+                        margin: 0;
+                        padding: 0;
+                    }
+                    #info {
+                        position: absolute;
+                        top: 120px;
+                        left: 10px;
+                        background-color: white;
+                        padding: 10px;
+                        border: 1px solid black;
+                        border-radius: 5px;
+                        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                        z-index: 1000;
+                        font-family: Arial, sans-serif;
+                    }
+                    #info h2 {
+                        margin: 0 0 5px 0;
+                        font-size: 16px;
+                    }
+                    #info p {
+                        margin: 0;
+                        font-size: 14px;
+                    }
+                </style>
+                <script src="https://maps.googleapis.com/maps/api/js?key=""" + self.api_key + """&callback=initMap" async defer></script>
+                <script>
+                    function initMap() {
+                        var map = new google.maps.Map(document.getElementById('map'), {
+                            zoom: 10,
+                            center: {lat: """ + str(self.graph.nodes[0]['pos'][1]) + """, lng: """ + str(self.graph.nodes[0]['pos'][0]) + """}
+                        });
+
+                        var infoWindow = document.getElementById('info');
+
+                        var markers = [];
+                        var edges = """ + json.dumps([{'start': self.graph.nodes[u]['pos'], 'end': self.graph.nodes[v]['pos']} for u, v, _ in self.mst]) + """; 
+
+                        edges.forEach(function(edge) {
+                            var start = new google.maps.LatLng(edge.start[1], edge.start[0]);
+                            var end = new google.maps.LatLng(edge.end[1], edge.end[0]);
+
+                            var line = new google.maps.Polyline({
+                                path: [start, end],
+                                geodesic: true,
+                                strokeColor: '#FF0000',
+                                strokeOpacity: 1.0,
+                                strokeWeight: 2,
+                                map: map
+                            });
+
+                            var markerStart = new google.maps.Marker({
+                                position: start,
+                                map: map,
+                                icon: {
+                                    url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png",
+                                    scaledSize: new google.maps.Size(20, 20)
+                                }
+                            });
+
+                            var markerEnd = new google.maps.Marker({
+                                position: end,
+                                map: map,
+                                icon: {
+                                    url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png",
+                                    scaledSize: new google.maps.Size(20, 20)
+                                }
+                            });
+
+                            markerStart.addListener('click', function() {
+                                infoWindow.innerHTML = '<h2>District: ' + edge.start[2] + '</h2>' +
+                                                       '<p>Latitude: ' + edge.start[1] + '</p>' +
+                                                       '<p>Longitude: ' + edge.start[0] + '</p>';
+                            });
+
+                            markerEnd.addListener('click', function() {
+                                infoWindow.innerHTML = '<h2>District: ' + edge.end[2] + '</h2>' +
+                                                       '<p>Latitude: ' + edge.end[1] + '</p>' +
+                                                       '<p>Longitude: ' + edge.end[0] + '</p>';
+                            });
+
+                            markers.push(markerStart);
+                            markers.push(markerEnd);
+                        });
+                    }
+                </script>
+            </head>
+            <body>
+                <div id="map"></div>
+                <div id="info">Click on a marker to see the district information here.</div>
+            </body>
+            </html>
+            """)
+
+# Example usage
+mst = MST(max_component, api_key)
+mst.kruskal_mst_cost()
+input()
+mst.prim_mst_distance()
