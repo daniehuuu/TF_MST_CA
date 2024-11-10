@@ -3,6 +3,7 @@ import googlemaps
 import pandas as pd
 import networkx as nx
 from scipy.spatial import distance_matrix
+import json
 
 # Rutas a los archivos CSV y clave de API de Google Maps
 graph_file_path = 'CAN.csv'
@@ -70,7 +71,7 @@ def create_graph(df, api_key):
         # Ordena las distancias y selecciona los índices de las 3 distancias más cortas que no sean 0
         sorted_indices = [index for index in dist_matrix[i].argsort() if dist_matrix[i][index] != 0][:3]
         for nearest in sorted_indices:
-            Grafo.add_edge(i, nearest, weight=dist_matrix[i][nearest])
+            Grafo.add_edge(i, nearest, distance=dist_matrix[i][nearest])
             dist_matrix[nearest][i] = 0  # Establecer la conexión invertida a 0 para evitar duplicados
     
     # Inicializa el cliente de Google Maps
@@ -94,7 +95,7 @@ def create_graph(df, api_key):
     """
 
     # Define the lambda function to calculate the cost
-    calculate_cost = lambda weight: weight * 1.03 if weight <= 1 else (weight * 1.07 if weight < 100 else weight * 1.13)
+    calculate_cost = lambda distance: distance * 1.03 if distance <= 1 else (distance * 1.07 if distance < 100 else distance * 1.13)
 
     edges_to_remove = []
     # Actualiza los pesos de las aristas con las distancias reales caminando
@@ -105,7 +106,7 @@ def create_graph(df, api_key):
         
         if result['rows'][0]['elements'][0]['status'] == 'OK':
             distance = result['rows'][0]['elements'][0]['distance']['value'] / 1000  # Distancia en kilómetros
-            data['weight'] = distance
+            data['distance'] = distance
             data['cost'] = calculate_cost(distance) 
         else:
             print(f"Error fetching distance between {u} and {v}: {result['rows'][0]['elements'][0]['status']}")
@@ -126,7 +127,7 @@ def save_graph_to_csv(graph, file_path):
             'distric 2:': graph.nodes[v]['district'],
             'lon2': graph.nodes[v]['pos'][0],
             'lat2': graph.nodes[v]['pos'][1],
-            'distance': data['weight'],
+            'distance': data['distance'],
             'cost': data['cost']
         })
     
@@ -214,9 +215,164 @@ def plot_map(df, api_key):
         """)
 
 # Carga los datos y genera el mapa
-df = load_data(graph_file_path, altitude_file_path)
-if df is not None:
-    plot_map(df, api_key)
+#df = load_data(graph_file_path, altitude_file_path)
+#if df is not None:
+#    plot_map(df, api_key)
 
-g = create_graph(df, api_key)
-save_graph_to_csv(g, 'test.csv')
+#g = create_graph(df, api_key)
+#save_graph_to_csv(g, 'test.csv')
+
+def create_original_graph_from_csv(file_path):
+    try:
+        df = pd.read_csv(file_path)
+        original_graph = nx.Graph()
+        id = 0
+        node_mapping = {}
+        
+        for _, row in df.iterrows():
+            u = (row['lat1'], row['lon1'])
+            v = (row['lat2'], row['lon2'])
+            distance = row['distance']
+            cost = row['cost']
+            
+            if u not in node_mapping:
+                original_graph.add_node(id, pos=(row['lon1'], row['lat1']), district=row['distric 1:'])
+                node_mapping[u] = id
+                id += 1
+            if v not in node_mapping:
+                original_graph.add_node(id, pos=(row['lon2'], row['lat2']), district=row['distric 2:'])
+                node_mapping[v] = id
+                id += 1
+            
+            original_graph.add_edge(node_mapping[u], node_mapping[v], distance=distance, cost=cost)
+        
+        return original_graph
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        return None
+
+# Example usage
+original_graph = create_original_graph_from_csv('test.csv')
+
+# how many nodes
+print(f"Number of nodes: {original_graph.number_of_nodes()}")
+# how many edges
+print(f"Number of edges: {original_graph.number_of_edges()}")
+
+# plot the map with the connections 
+# gmap = gmplot.GoogleMapPlotter(original_graph.nodes[0]['pos'][1], original_graph.nodes[0]['pos'][0], 10)
+# for u, v, data in original_graph.edges(data=True):
+#     gmap.marker(u[0], u[1], color='red')
+#     gmap.marker(v[0], v[1], color='red')
+#     gmap.plot([u[0], v[0]], [u[1], v[1]], 'blue', edge_width=2)
+#
+#gmap.draw("original_map.html")
+
+# This func don't work
+def plot_original_graph(graph, api_key):
+    # Crea el archivo HTML con la estructura básica del mapa
+    with open("original_map.html", "w", encoding="utf-8") as f:
+        f.write("""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                /* Asegura que el mapa ocupe todo el tamaño de la ventana */
+                html, body, #map {
+                    height: 100%;
+                    margin: 0;
+                    padding: 0;
+                }
+                /* Estilo para el contenedor de información */
+                #info {
+                    position: absolute;
+                    top: 120px;
+                    left: 10px;
+                    background-color: white;
+                    padding: 10px;
+                    border: 1px solid black;
+                    border-radius: 5px;
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                    z-index: 1000;
+                    font-family: Arial, sans-serif;
+                }
+                #info h2 {
+                    margin: 0 0 5px 0;
+                    font-size: 16px;
+                }
+                #info p {
+                    margin: 0;
+                    font-size: 14px;
+                }
+            </style>
+            <script src="https://maps.googleapis.com/maps/api/js?key=""" + api_key + """&callback=initMap" async defer></script>
+            <script>
+                function initMap() {
+                    var map = new google.maps.Map(document.getElementById('map'), {
+                        zoom: 10,
+                        center: {lat: """ + str(graph.nodes[0]['pos'][1]) + """, lng: """ + str(graph.nodes[0]['pos'][0]) + """}
+                    });
+
+                    var infoWindow = document.getElementById('info');
+
+                    var markers = [];
+                    var edges = """ + json.dumps([{'start': graph.nodes[u]['pos'], 'end': graph.nodes[v]['pos']} for u, v in graph.edges()]) + """;
+
+                    edges.forEach(function(edge) {
+                        var start = new google.maps.LatLng(edge.start[1], edge.start[0]);
+                        var end = new google.maps.LatLng(edge.end[1], edge.end[0]);
+
+                        var line = new google.maps.Polyline({
+                            path: [start, end],
+                            geodesic: true,
+                            strokeColor: '#FF0000',
+                            strokeOpacity: 1.0,
+                            strokeWeight: 2,
+                            map: map
+                        });
+
+                        var markerStart = new google.maps.Marker({
+                            position: start,
+                            map: map,
+                            icon: {
+                                url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png",
+                                scaledSize: new google.maps.Size(20, 20)
+                            }
+                        });
+
+                        var markerEnd = new google.maps.Marker({
+                            position: end,
+                            map: map,
+                            icon: {
+                                url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png",
+                                scaledSize: new google.maps.Size(20, 20)
+                            }
+                        });
+
+                        markerStart.addListener('click', function() {
+                            infoWindow.innerHTML = '<h2>District: ' + edge.start[2] + '</h2>' +
+                                                   '<p>Latitude: ' + edge.start[1] + '</p>' +
+                                                   '<p>Longitude: ' + edge.start[0] + '</p>';
+                        });
+
+                        markerEnd.addListener('click', function() {
+                            infoWindow.innerHTML = '<h2>District: ' + edge.end[2] + '</h2>' +
+                                                   '<p>Latitude: ' + edge.end[1] + '</p>' +
+                                                   '<p>Longitude: ' + edge.end[0] + '</p>';
+                        });
+
+                        markers.push(markerStart);
+                        markers.push(markerEnd);
+                    });
+                }
+            </script>
+        </head>
+        <body>
+            <div id="map"></div>
+            <div id="info">Click on a marker to see the district information here.</div>
+        </body>
+        </html>
+        """)
+
+# Example usage
+# plot_original_graph(original_graph, api_key) #This func don't work
