@@ -9,6 +9,13 @@ graph_file_path = 'CAN.csv'
 altitude_file_path = 'TB_UBIGEOS.csv'
 api_key = 'AIzaSyBUu6qAVsHdnUJlFDwAeFyk3YQDgvanreA'
 
+def clean_text(text):
+    """Limpia caracteres mal codificados y reemplaza 'ñ' por 'n'."""
+    if isinstance(text, str):
+        text = text.encode('latin1').decode('utf-8', errors='ignore')
+        text = text.replace('ñ', 'n').replace('Ñ', 'N')
+    return text
+
 def load_data(graph_file_path, altitude_file_path):
     try:
         graph_df = pd.read_csv(graph_file_path, delimiter=';', encoding='latin1')
@@ -35,6 +42,8 @@ def load_data(graph_file_path, altitude_file_path):
             'distrito': 'district'
         }, inplace=True)
         
+        altitude_df['district'] = altitude_df['district'].apply(clean_text)
+          
         # Fusiona los DataFrames basados en el UBIGEO_DISTRITO
         merged_df = pd.merge(graph_df, altitude_df, on='UBIGEO_DISTRITO')
         
