@@ -1,4 +1,5 @@
 import gmplot
+import googlemaps
 import pandas as pd
 import networkx as nx
 from scipy.spatial import distance_matrix
@@ -42,22 +43,89 @@ def load_data(graph_file_path, altitude_file_path):
         print(f"An unexpected error occurred: {e}")
         return None
 
-def create_graph(df):
+def create_graph(df, api_key):
     # Calcula la matriz de distancias entre las coordenadas
     coords = df[['latitude', 'longitude']].to_numpy()
     dist_matrix = distance_matrix(coords, coords)
+    
     Grafo = nx.Graph()
     
     # Añade nodos al grafo con atributos de posición y distrito
     for i, row in df.iterrows():
         Grafo.add_node(i, pos=(row['longitude'], row['latitude']), district=row['district'])
+    # print the number of nodes
+    # print(f"Number of nodes: {Grafo.number_of_nodes()}")
     
-    # Añade aristas al grafo basadas en la matriz de distancias
+    # Añade aristas al grafo basadas en las 3 distancias más cortas
     for i in range(len(dist_matrix)):
-        nearest = dist_matrix[i].argsort()[1]  # Encuentra el nodo más cercano que no sea el mismo nodo
-        Grafo.add_edge(i, nearest, weight=dist_matrix[i][nearest])
+        # Ordena las distancias y selecciona los índices de las 3 distancias más cortas que no sean 0
+        sorted_indices = [index for index in dist_matrix[i].argsort() if dist_matrix[i][index] != 0][:3]
+        for nearest in sorted_indices:
+            Grafo.add_edge(i, nearest, weight=dist_matrix[i][nearest])
+            dist_matrix[nearest][i] = 0  # Establecer la conexión invertida a 0 para evitar duplicados
     
+    # Inicializa el cliente de Google Maps
+    gmaps = googlemaps.Client(key=api_key)
+
+    """ To check the number of edges and the frequency of connections
+    # how many edges
+    print(f"Number of edges: {Grafo.number_of_edges()}")
+    # Create a dictionary to store the frequency of each node's connections
+    connection_frequencies = {}
+    for node in Grafo.nodes():
+        num_connections = len(list(Grafo.edges(node)))
+        if num_connections in connection_frequencies:
+            connection_frequencies[num_connections] += 1
+        else:
+            connection_frequencies[num_connections] = 1
+
+    # Convert the dictionary to a DataFrame for better visualization
+    frequency_df = pd.DataFrame(list(connection_frequencies.items()), columns=['Number of Connections', 'Frequency'])
+    print(frequency_df)
+    """
+
+    # Define the lambda function to calculate the cost
+    calculate_cost = lambda weight: weight * 1.03 if weight <= 1 else (weight * 1.07 if weight < 100 else weight * 1.13)
+
+    edges_to_remove = []
+    # Actualiza los pesos de las aristas con las distancias reales caminando
+    for u, v, data in Grafo.edges(data=True):
+        start = Grafo.nodes[u]['pos']
+        end = Grafo.nodes[v]['pos']
+        result = gmaps.distance_matrix(origins=[(start[1], start[0])], destinations=[(end[1], end[0])], mode="walking")
+        
+        if result['rows'][0]['elements'][0]['status'] == 'OK':
+            distance = result['rows'][0]['elements'][0]['distance']['value'] / 1000  # Distancia en kilómetros
+            data['weight'] = distance
+            data['cost'] = calculate_cost(distance) 
+        else:
+            print(f"Error fetching distance between {u} and {v}: {result['rows'][0]['elements'][0]['status']}")
+            edges_to_remove.append((u, v)) # Elimina la arista si no existe una distancia real
+    Grafo.remove_edges_from(edges_to_remove)
     return Grafo
+
+def save_graph_to_csv(graph, file_path):
+    # Crear una lista para almacenar los datos de las aristas
+    edge_data = []
+    
+    # Recorrer las aristas del grafo y extraer la información necesaria
+    for u, v, data in graph.edges(data=True):
+        edge_data.append({
+            'distric 1:': graph.nodes[u]['district'],
+            'lon1': graph.nodes[u]['pos'][0],
+            'lat1': graph.nodes[u]['pos'][1],
+            'distric 2:': graph.nodes[v]['district'],
+            'lon2': graph.nodes[v]['pos'][0],
+            'lat2': graph.nodes[v]['pos'][1],
+            'distance': data['weight'],
+            'cost': data['cost']
+        })
+    
+    # Convertir la lista de datos en un DataFrame de pandas
+    edge_df = pd.DataFrame(edge_data)
+    
+    # Guardar el DataFrame en un archivo CSV
+    edge_df.to_csv(file_path, index=False)
 
 def plot_map(df, api_key):
     # Crea el archivo HTML con la estructura básica del mapa
@@ -140,3 +208,6 @@ def plot_map(df, api_key):
 df = load_data(graph_file_path, altitude_file_path)
 if df is not None:
     plot_map(df, api_key)
+
+g = create_graph(df, api_key)
+save_graph_to_csv(g, 'test.csv')
