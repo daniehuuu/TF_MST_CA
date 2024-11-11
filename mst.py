@@ -32,33 +32,38 @@ class MST:
 
     def prim_mst_distance(self):
         self.mst = nx.Graph()
+        for node, data in self.graph.nodes(data=True):
+            self.mst.add_node(node, **data)
         self.total_amount = 0
         start_node = next(iter(self.graph.nodes))
         visited = set([start_node])
-        edges = [(data['distance'], start_node, neighbor) for neighbor, data in self.graph[start_node].items()]
+        edges = [(data['distance'], start_node, neighbor, data['cost']) for neighbor, data in self.graph[start_node].items()]
         heapq.heapify(edges)
         
         while edges:
-            distance, u, v = heapq.heappop(edges)
+            distance, u, v, cost = heapq.heappop(edges)
             if v not in visited:
                 visited.add(v)
-                self.mst.add_edge(u, v, distance=distance)
+                self.mst.add_edge(u, v, distance=distance, cost=cost)
                 self.total_amount += distance
                 for neighbor, data in self.graph[v].items():
                     if neighbor not in visited:
-                        heapq.heappush(edges, (data['distance'], v, neighbor))
+                        heapq.heappush(edges, (data['distance'], v, neighbor, data['cost']))
+        
                         
     def kruskal_mst_cost(self):
         self.mst = nx.Graph()
+        for node, data in self.graph.nodes(data=True):
+            self.mst.add_node(node, **data)
         self.total_amount = 0
-        edges = [(data['cost'], u, v) for u, v, data in self.graph.edges(data=True)]
-        edges.sort()
+        edges = [(data['cost'], data['distance'], u, v) for u, v, data in self.graph.edges(data=True)]
+        edges.sort(key=lambda x: x[0])
         
         uf = UnionFind(len(self.graph.nodes))
         node_index = {node: idx for idx, node in enumerate(self.graph.nodes)}
         
-        for cost, u, v in edges:
+        for cost, distance, u, v in edges:
             if uf.find(node_index[u]) != uf.find(node_index[v]):
                 uf.union(node_index[u], node_index[v])
-                self.mst.add_edge(u, v, cost=cost)
-                self.total_amount += cost   
+                self.mst.add_edge(u, v, distance=distance, cost=cost)
+                self.total_amount += cost

@@ -17,9 +17,11 @@ class MapProcessor:
         self.real_weighted_graph = self.GProc.read_real_weighted_graph('dataset.csv')
         self.max_component = self.find_max_component()
         self.mst_processor = MST(self.max_component)
-        self.mst_distance_prim = self.mst_processor.prim_mst_distance()
+        self.mst_processor.prim_mst_distance()
+        self.mst_distance_prim = self.mst_processor.mst
         self.mst_distance_total = self.mst_processor.total_amount
-        self.mst_cost_kruskal = self.mst_processor.kruskal_mst_cost()
+        self.mst_processor.kruskal_mst_cost()
+        self.mst_cost_kruskal = self.mst_processor.mst
         self.mst_cost_total = self.mst_processor.total_amount
     
     def find_max_component(self):
@@ -59,10 +61,10 @@ class MapProcessor:
             graph = self.real_weighted_graph  # Original graph (no edges)
             script = self.get_original_script(graph)  # Aquí llamamos a get_original_script
         elif graph_type == "PrimMST":
-            graph = self.max_component  
+            graph = self.mst_distance_prim  # Prim's MST
             script = self.get_prim_script(graph)  # Llamamos al script de Prim
         elif graph_type == "KruskalMST":
-            graph = self.max_component  
+            graph = self.mst_cost_kruskal  # Kruskal's MST
             script = self.get_kruskal_script(graph)  
         else:
             raise ValueError("Unsupported graph type")
@@ -381,7 +383,7 @@ class MapProcessor:
                   infoWindow.innerHTML = '<h2>Edge Information</h2>' +
                                         '<p>Start District: ' + edge.start_district.replace(/ñ/g, 'n') + '</p>' +
                                         '<p>End District: ' + edge.end_district.replace(/ñ/g, 'n') + '</p>' +
-                                        '<p>Distance: ' + distance + ' km</p>' +
+                                        '<p>Distance: ' + distance + '</p>' +
                                         '<p>Start District Connections: ' + connectionsCount[edge.start_district] + '</p>' +
                                         '<p>End District Connections: ' + connectionsCount[edge.end_district] + '</p>';
              });
@@ -528,14 +530,14 @@ class MapProcessor:
         } for u, v in graph.edges()]) + """;  // List of edges
 
         // Initialize the total cost counter
-        var totalCost = 0;
+        var totalDistance = 0;
 
         // Count the connections by district
         var connectionsCount = {};
 
         edges.forEach(function(edge) {
             // Add the cost of each edge to the total cost
-            totalCost += edge.cost;
+            totalDistance += edge.distance;
 
             // Count connections for each district (start and end)
             if (!connectionsCount[edge.start_district]) {
@@ -620,7 +622,7 @@ class MapProcessor:
         statsContainer.innerHTML = '<h3 style="margin: 0;">Statistics</h3>' +
                                    '<p style="margin: 5px 0;">Nodes: ' + """ + str(len(graph.nodes)) + """ + '</p>' +
                                    '<p style="margin: 5px 0;">Edges: ' + """ + str(len(graph.edges)) + """ + '</p>' +
-                                   '<p style="margin: 5px 0;">Total Cost: ' + totalCost.toFixed(2) + ' miles de soles</p>';
+                                   '<p style="margin: 5px 0;">Total Cost: ' + totalDistance.toFixed(2) + ' km</p>';
         document.body.appendChild(statsContainer);
     }
     """
@@ -746,16 +748,3 @@ class MapProcessor:
         document.body.appendChild(statsContainer);
     }
     """
-
-
-
-
-
-
-
-
-        
-
-# Ejemplo de uso
-map_processor = MapProcessor('dataset.csv', api_key)
-map_processor.plot_map("ComponenteConexaMasGrande", "test.html")  
