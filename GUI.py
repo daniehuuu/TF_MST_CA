@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 import subprocess
-from file2 import MapProcessor
+from Map_Processor import MapProcessor
 
 api_key = 'AIzaSyBUu6qAVsHdnUJlFDwAeFyk3YQDgvanreA'
 
