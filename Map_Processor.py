@@ -622,7 +622,7 @@ class MapProcessor:
         statsContainer.innerHTML = '<h3 style="margin: 0;">Statistics</h3>' +
                                    '<p style="margin: 5px 0;">Nodes: ' + """ + str(len(graph.nodes)) + """ + '</p>' +
                                    '<p style="margin: 5px 0;">Edges: ' + """ + str(len(graph.edges)) + """ + '</p>' +
-                                   '<p style="margin: 5px 0;">Total Cost: ' + totalDistance.toFixed(2) + ' km</p>';
+                                   '<p style="margin: 5px 0;">Total Distance: ' + totalDistance.toFixed(2) + ' km</p>';
         document.body.appendChild(statsContainer);
     }
     """
